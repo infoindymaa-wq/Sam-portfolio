@@ -164,7 +164,16 @@
 
         function showToast(m) { const t = document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none', 2000); }
 
-        window.onload = () => { loadData(); lucide.createIcons(); };
+        window.onload = () => { 
+            const pass = prompt("Enter Admin Password:");
+            if (pass !== "indymaa777") {
+                alert("Access Denied!");
+                document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:100px;'>403 - Forbidden</h1>";
+                return;
+            }
+            loadData(); 
+            lucide.createIcons(); 
+        };
     </script>
     </script>
 </body>

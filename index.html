@@ -215,12 +215,26 @@
             "skills": [{ "name": "HTML", "icon": "html5" }, { "name": "CSS", "icon": "css3" }, { "name": "JS", "icon": "javascript" }, { "name": "React", "icon": "react" }, { "name": "NextJS", "icon": "nextjs" }, { "name": "Node", "icon": "nodejs" }, { "name": "TS", "icon": "typescript" }, { "name": "Tailwind", "icon": "tailwindcss" }, { "name": "Python", "icon": "python" }, { "name": "Java", "icon": "java" }, { "name": "MongoDB", "icon": "mongodb" }, { "name": "Docker", "icon": "docker" }, { "name": "C++", "icon": "cplusplus" }, { "name": "Git", "icon": "git" }, { "name": "Redux", "icon": "redux" }, { "name": "Vue", "icon": "vuejs" }, { "name": "MySQL", "icon": "mysql" }, { "name": "Figma", "icon": "figma" }]
         };
 
+        /** --- TRACKING --- **/
+        window.trackEvent = async function(type) {
+            try {
+                await fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type })
+                });
+            } catch (e) {}
+        };
+
         async function syncData() {
             try {
                 const { data } = await _supabase.from('portfolio').select('content').eq('id', 1).single();
                 if (data) window.WEBSITE_DATA = data.content;
                 renderAll();
-            } catch (e) { renderAll(); }
+                trackEvent('view'); // Track real cloud view
+            } catch (e) { 
+                renderAll(); 
+            }
         }
 
         function renderAll() {
