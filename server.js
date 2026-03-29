@@ -1,81 +1,83 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const admin = require('firebase-admin');
+const multer = require('multer');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
+// Initialize Firebase
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
+    : null;
+
+if (serviceAccount) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+} else {
+    console.log("⚠️ Firebase not initialized. Run locally with file mode or set FIREBASE_SERVICE_ACCOUNT on Vercel.");
+}
+
+const db = serviceAccount ? admin.firestore() : null;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(__dirname));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
-const INDEX_PATH = path.join(__dirname, 'index.html');
-const ANALYTICS_PATH = path.join(__dirname, 'analytics.json');
-
-// Initialize Analytics with real structure
-if (!fs.existsSync(ANALYTICS_PATH)) {
-    const initialAnalytics = {
-        totalViews: 0,
-        projectClicks: 0,
-        totalSessionTime: 0, // In seconds
-        sessionCount: 0,
-        dailyViews: [0, 0, 0, 0, 0, 0, 0] // Last 7 days
-    };
-    fs.writeFileSync(ANALYTICS_PATH, JSON.stringify(initialAnalytics, null, 4));
-}
-
-// Helper to update daily views
-function updateDailyStats(data) {
-    const today = new Date().getDay(); // 0-6 (Sun-Sat)
-    // We rotate the array or just update today's index
-    // For simplicity in this local tool, we use current day index
-    data.dailyViews[today]++;
-}
-
-app.get('/api/data', (req, res) => {
+// API: Get Portfolio Data
+app.get('/api/data', async (req, res) => {
     try {
-        const content = fs.readFileSync(INDEX_PATH, 'utf8');
+        if (db) {
+            const doc = await db.collection('portfolio').doc('main').get();
+            if (doc.exists) return res.json(doc.data());
+        }
+        // Local Fallback if Firebase not set
+        const content = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
         const match = content.match(/\/\* <WEBSITE_DATA> \*\/([\s\S]*?)\/\* <\/WEBSITE_DATA> \*\//);
-        if (match) {
-            const dataStr = match[1].trim().replace(/^const WEBSITE_DATA\s*=\s*/, '').replace(/;$/, '').trim();
-            const data = new Function(`return ${dataStr}`)();
-            res.json(data);
-        } else res.status(404).send('Data not found');
+        const dataStr = match[1].trim().replace(/^const WEBSITE_DATA\s*=\s*/, '').replace(/;$/, '').trim();
+        res.json(new Function(`return ${dataStr}`)());
     } catch (err) { res.status(500).send(err.message); }
 });
 
-app.post('/api/save', (req, res) => {
+// API: Save Portfolio Data
+app.post('/api/save', async (req, res) => {
     try {
         const newData = req.body;
-        let content = fs.readFileSync(INDEX_PATH, 'utf8');
-        const newDataStr = `const WEBSITE_DATA = ${JSON.stringify(newData, null, 4)};`;
-        const updatedContent = content.replace(/\/\* <WEBSITE_DATA> \*\/([\s\S]*?)\/\* <\/WEBSITE_DATA> \*\//, `/* <WEBSITE_DATA> */\n        ${newDataStr}\n        /* </WEBSITE_DATA> */`);
-        fs.writeFileSync(INDEX_PATH, updatedContent, 'utf8');
-        res.send('Success');
+        if (db) {
+            await db.collection('portfolio').doc('main').set(newData);
+            return res.send('Success');
+        }
+        res.status(400).send('Firebase not configured');
     } catch (err) { res.status(500).send(err.message); }
 });
 
-app.get('/api/analytics', (req, res) => {
-    const data = JSON.parse(fs.readFileSync(ANALYTICS_PATH, 'utf8'));
-    res.json(data);
+// API: Analytics
+app.get('/api/analytics', async (req, res) => {
+    if (db) {
+        const doc = await db.collection('stats').doc('main').get();
+        return res.json(doc.exists ? doc.data() : {});
+    }
+    res.json({});
 });
 
-app.post('/api/track', (req, res) => {
+app.post('/api/track', async (req, res) => {
     const { type, duration } = req.body;
-    const data = JSON.parse(fs.readFileSync(ANALYTICS_PATH, 'utf8'));
-    
-    if (type === 'view') {
-        data.totalViews++;
-        data.sessionCount++;
-        updateDailyStats(data);
+    if (db) {
+        const ref = db.collection('stats').doc('main');
+        const update = {};
+        if (type === 'view') {
+            update.totalViews = admin.firestore.FieldValue.increment(1);
+            update.sessionCount = admin.firestore.FieldValue.increment(1);
+        }
+        if (type === 'click') update.projectClicks = admin.firestore.FieldValue.increment(1);
+        if (type === 'session_end' && duration) update.totalSessionTime = admin.firestore.FieldValue.increment(duration);
+        
+        await ref.set(update, { merge: true });
     }
-    if (type === 'click') data.projectClicks++;
-    if (type === 'session_end' && duration) {
-        data.totalSessionTime += duration;
-    }
-    
-    fs.writeFileSync(ANALYTICS_PATH, JSON.stringify(data, null, 4));
-    res.send('Tracked');
+    res.send('ok');
 });
 
 app.listen(PORT, () => {
-    console.log(`\n🚀 Pro Builder Server running at http://localhost:${PORT}`);
+    console.log(`\n🚀 Backend Live at Port ${PORT}`);
 });

@@ -3,471 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAM | Space Portfolio Builder</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <title>SAM | Pro Portfolio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg-dark: #030014;
-            --purple-main: #7042f8;
-            --purple-glow: rgba(112, 66, 248, 0.4);
-            --text-dim: #b1b1b1;
-            --nav-bg: rgba(3, 0, 20, 0.3);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        :root { --bg-dark: #030014; --purple-main: #7042f8; --purple-glow: rgba(112, 66, 248, 0.4); --text-dim: #94a3b8; --nav-bg: rgba(3, 0, 20, 0.8); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
 
-        /* --- BACKGROUND --- */
-        .bg-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden;
-            background: radial-gradient(circle at 50% 50%, #0a0521 0%, #030014 100%);
-        }
-        .video-bg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
-            opacity: 0.35; mix-blend-mode: screen;
-        }
-        #star-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        /* Loader */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #030014; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(112, 66, 248, 0.1); border-top-color: var(--purple-main); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* --- NAVIGATION --- */
-        nav {
-            position: fixed; top: 0; width: 100%; height: 65px;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 10%; background: var(--nav-bg); backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(112, 66, 248, 0.1); z-index: 1000;
-        }
-        .logo { font-weight: 800; font-size: 24px; cursor: pointer; }
-        .nav-links {
-            display: flex; gap: 25px; background: rgba(5, 0, 30, 0.6);
-            padding: 8px 30px; border-radius: 40px; border: 1px solid rgba(112, 66, 248, 0.2);
-        }
-        .nav-links a { color: #e2e2e2; text-decoration: none; font-size: 14px; transition: 0.3s; cursor: pointer; }
+        /* Background */
+        .bg-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: #030014; }
+        .nebula { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 30%, rgba(112, 66, 248, 0.15) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(112, 66, 248, 0.1) 0%, transparent 50%); filter: blur(60px); opacity: 0.6; }
+        #star-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        /* Navigation */
+        nav { position: fixed; top: 0; width: 100%; height: 65px; display: flex; justify-content: space-between; align-items: center; padding: 0 10%; background: var(--nav-bg); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(112, 66, 248, 0.1); z-index: 1000; }
+        .logo { font-weight: 800; font-size: 22px; cursor: pointer; background: linear-gradient(to right, #fff, var(--purple-main)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 25px; }
+        .nav-links a { color: #e2e2e2; text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.3s; cursor: pointer; }
         .nav-links a:hover { color: var(--purple-main); text-shadow: 0 0 10px var(--purple-main); }
 
-        /* --- VIEWS --- */
-        .view { display: none; opacity: 0; transition: opacity 0.5s ease; width: 100%; }
-        .view.active { display: block; opacity: 1; }
+        .view { display: none; opacity: 0; width: 100%; }
+        .view.active { display: block; opacity: 1; animation: fadeIn 0.4s ease-out; }
 
-        section { padding: 80px 10%; min-height: 90vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        section { padding: 100px 10% 60px; min-height: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
 
-        /* --- HERO --- */
-        .hero { flex-direction: row; justify-content: space-between; text-align: left; gap: 50px; }
-        .hero-content { flex: 1; max-width: 600px; }
-        .hero-name { font-size: 1.2rem; font-weight: 600; color: var(--purple-main); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px; }
-        .hero h1 { font-size: clamp(2.5rem, 4.5vw, 4rem); font-weight: 800; line-height: 1.1; margin-bottom: 25px; }
+        /* Hero */
+        .hero { flex-direction: row; justify-content: space-between; text-align: left; gap: 50px; padding-top: 120px; align-items: center; }
+        .hero-content { flex: 1.2; }
+        .hero-name { font-size: 14px; font-weight: 700; color: var(--purple-main); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 15px; display: block; }
+        .hero h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
         .name-highlight { background: linear-gradient(to right, #fff, var(--purple-main)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero-image { flex: 1; display: flex; justify-content: center; animation: float 4s ease-in-out infinite; }
-        .hero-image img { max-width: 100%; height: auto; filter: drop-shadow(0 0 30px var(--purple-glow)); }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .hero p { color: var(--text-dim); font-size: 1.1rem; line-height: 1.6; margin-bottom: 35px; max-width: 550px; }
+        .hero-image { flex: 1; display: flex; justify-content: center; position: relative; }
+        .hero-image img { max-width: 110%; height: auto; filter: drop-shadow(0 0 30px var(--purple-glow)); animation: float 5s ease-in-out infinite; }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(2deg); } }
 
-        /* --- TECH CLOUD SKILLS --- */
-        .skills-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 25px;
-            max-width: 900px;
-            margin: 50px auto 0;
-        }
+        .btn-cta { display: inline-block; padding: 14px 35px; border: 1px solid var(--purple-main); border-radius: 35px; color: white; text-decoration: none; font-weight: 700; background: rgba(112, 66, 248, 0.1); transition: 0.4s; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
+        .btn-cta:hover { background: var(--purple-main); box-shadow: 0 0 30px var(--purple-main); transform: translateY(-3px); }
 
-        .skill-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(112, 66, 248, 0.1);
-            padding: 20px;
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            width: 110px;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            backdrop-filter: blur(5px);
-            animation: float-skill 4s ease-in-out infinite;
-        }
+        /* Skills */
+        .skills-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1000px; margin-top: 40px; }
+        .skill-box { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(112, 66, 248, 0.1); padding: 18px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 110px; backdrop-filter: blur(8px); transition: 0.3s; }
+        .skill-box:hover { border-color: var(--purple-main); transform: scale(1.1); background: rgba(112, 66, 248, 0.05); }
+        .skill-box img { width: 40px; height: 40px; filter: drop-shadow(0 0 10px rgba(112,66,248,0.2)); }
+        .skill-box span { font-size: 11px; font-weight: 600; color: #fff; }
 
-        .skill-box:hover {
-            border-color: var(--purple-main);
-            background: rgba(112, 66, 248, 0.05);
-            transform: translateY(-10px) scale(1.05);
-            box-shadow: 0 10px 30px rgba(112, 66, 248, 0.2);
-        }
-
-        .skill-box img {
-            width: 45px;
-            height: 45px;
-            filter: drop-shadow(0 0 10px rgba(112, 66, 248, 0.3));
-        }
-
-        .skill-box span {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-
-        @keyframes float-skill {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        /* --- PROJECTS --- */
-        .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; width: 100%; max-width: 1200px; margin-top: 50px; }
-        .project-card { 
-            background: rgba(112, 66, 248, 0.04); border: 1px solid rgba(112, 66, 248, 0.15); 
-            border-radius: 20px; overflow: hidden; text-align: left; transition: 0.4s;
-            text-decoration: none; color: white; display: flex; flex-direction: column;
-        }
-        .project-card:hover { border-color: var(--purple-main); box-shadow: 0 10px 30px rgba(112, 66, 248, 0.2); transform: translateY(-5px); }
+        /* Projects */
+        .projects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; width: 100%; max-width: 1200px; margin-top: 40px; }
+        .project-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(112, 66, 248, 0.1); border-radius: 24px; overflow: hidden; text-align: left; transition: 0.4s; text-decoration: none; color: white; display: flex; flex-direction: column; }
+        .project-card:hover { transform: translateY(-10px); border-color: var(--purple-main); box-shadow: 0 15px 40px rgba(112, 66, 248, 0.15); }
         .project-thumb { width: 100%; height: 200px; background: #111; object-fit: cover; }
-        .project-info { padding: 25px; background: rgba(3, 0, 20, 0.6); flex-grow: 1; }
-        .project-info h3 { font-size: 1.4rem; margin-bottom: 10px; }
-        .project-info p { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 15px; }
-        .project-tag { display: inline-block; background: var(--purple-main); color: white; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-bottom: 10px; }
+        .project-info { padding: 25px; background: rgba(3, 0, 20, 0.4); flex-grow: 1; }
+        .project-info h3 { font-size: 1.3rem; margin-bottom: 10px; }
+        .project-info p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; }
+        .project-tag { display: inline-block; background: var(--purple-main); color: white; padding: 4px 12px; border-radius: 15px; font-size: 10px; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; }
 
-        .btn-view-all {
-            margin-top: 50px; padding: 12px 35px; border: 1px solid var(--purple-main);
-            border-radius: 30px; color: white; background: rgba(112, 66, 248, 0.1);
-            font-weight: 600; cursor: pointer; transition: 0.3s;
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- EXTREME MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            nav { padding: 0 6%; height: 60px; }
+            .logo { font-size: 18px; }
+            .nav-links { gap: 15px; }
+            .nav-links a { font-size: 12px; }
+            
+            section { padding: 60px 6% 30px; }
+
+            .hero { 
+                display: grid;
+                grid-template-columns: 1fr 0.8fr; 
+                gap: 15px;
+                text-align: left;
+                padding-top: 100px;
+            }
+            
+            .hero-content { display: contents; } 
+
+            .hero-name { 
+                grid-column: 1 / span 2; 
+                text-align: center; 
+                font-size: 12px; 
+                margin-bottom: 5px;
+                letter-spacing: 3px;
+            }
+            
+            .hero h1 { 
+                grid-column: 1 / span 2; 
+                text-align: center; 
+                font-size: 1.8rem; 
+                margin-bottom: 15px;
+                line-height: 1.2;
+            }
+
+            .hero p { 
+                grid-column: 1; 
+                font-size: 0.8rem; 
+                line-height: 1.5;
+                margin: 0;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(112, 66, 248, 0.1);
+                border-radius: 15px;
+                backdrop-filter: blur(10px);
+                color: #e2e2e2;
+            }
+
+            .hero-image { 
+                grid-column: 2; 
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .hero-image img { 
+                max-width: 140%; 
+                transform: scale(1.4) translateX(5px);
+                filter: drop-shadow(0 0 15px var(--purple-glow));
+            }
+
+            .btn-cta { 
+                grid-column: 1 / span 2; 
+                margin: 25px auto 0;
+                width: 100%;
+                text-align: center;
+            }
+            
+            /* Better 2-Column Grid for Projects */
+            .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 30px; }
+            .project-thumb { height: 110px; }
+            .project-info { padding: 12px; }
+            .project-info h3 { font-size: 0.95rem; }
+            .project-info p { display: none; } /* Hide desc on mobile home for clean look */
+            .project-tag { font-size: 8px; padding: 2px 8px; }
+            
+            /* Skills Grid */
+            .skill-box { width: 80px; padding: 12px; gap: 5px; }
+            .skill-box img { width: 28px; height: 28px; }
+            .skill-box span { font-size: 9px; }
         }
-        .btn-view-all:hover { background: var(--purple-main); box-shadow: 0 0 20px var(--purple-main); }
 
-        /* --- REVEAL ANIMATION --- */
-        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
-        .reveal.active { opacity: 1; transform: translateY(0); }
-
-        @media (max-width: 1024px) {
-            .hero { flex-direction: column; text-align: center; }
-            .hero-content { max-width: 100%; }
-            .nav-links { display: none; }
+        @media (max-width: 400px) {
+            .hero h1 { font-size: 1.5rem; }
+            .hero { grid-template-columns: 1fr 0.7fr; }
+            .skill-box { width: 70px; }
         }
     </style>
 </head>
 <body>
-
-    <div class="bg-container">
-        <video class="video-bg" autoplay muted loop playsinline>
-            <source src="https://github.com/sanidhyy/space-portfolio/raw/main/public/blackhole.webm" type="video/webm">
-        </video>
-        <canvas id="star-canvas"></canvas>
-    </div>
-
+    <div id="loader"><div class="spinner"></div><p style="margin-top:15px; color:var(--purple-main); font-weight:700; font-size:12px; letter-spacing:3px;">INITIALIZING...</p></div>
+    <div class="bg-container"><div class="nebula"></div><canvas id="star-canvas"></canvas></div>
+    
     <nav>
         <div class="logo" id="site-logo" onclick="switchView('home')">SAM</div>
         <div class="nav-links">
-            <a onclick="switchView('home')">About</a>
+            <a onclick="switchView('home')">Home</a>
             <a onclick="scrollSection('skills')">Skills</a>
-            <a onclick="switchView('projects')">Projects</a>
+            <a onclick="switchView('projects')">Work</a>
         </div>
     </nav>
 
-    <!-- --- HOME VIEW --- -->
     <div id="home-view" class="view active">
         <section id="about" class="hero">
             <div class="hero-content">
-                <span class="hero-name" id="hero-tag">I'M SAM — Full Stack Developer</span>
-                <h1 id="hero-title">Making apps with <br> <span class="name-highlight">Modern Technologies</span></h1>
-                <p id="hero-desc">Providing the best project experience with high-performance web applications and seamless digital solutions.</p>
-                <div style="margin-top: 30px;">
-                    <button class="btn-view-all" onclick="switchView('projects')">View My Work</button>
-                </div>
+                <span class="hero-name" id="hero-tag">Full Stack Engineer</span>
+                <h1 id="hero-title">Crafting Digital Future</h1>
+                <p id="hero-desc">Building high-end web applications with precision and modern tech stack.</p>
+                <button class="btn-cta" onclick="switchView('projects')">Explore Projects</button>
             </div>
-            <div class="hero-image">
-                <img id="hero-img" src="https://i.ibb.co/d4ttY6Vp/vecteezy-3d-male-character-sitting-on-a-sofa-and-working-on-a-laptop-24785790.png" alt="SAM">
-            </div>
+            <div class="hero-image"><img id="hero-img" src="" alt="SAM"></div>
         </section>
 
         <section id="skills">
-            <h2 style="font-size: 2.5rem; margin-bottom: 50px;">Technical Skills</h2>
-            <div class="skills-container" id="skills-pyramid"></div>
+            <h2 style="font-size: 2rem; margin-bottom: 30px;">Capabilities</h2>
+            <div class="skills-container" id="skills-list"></div>
         </section>
 
         <section id="projects-preview">
-            <h2 style="font-size: 2.5rem; margin-bottom: 40px;">Featured Projects</h2>
+            <h2 style="font-size: 2rem; margin-bottom: 30px;">Spotlight</h2>
             <div class="projects-grid" id="home-projects-list"></div>
-            <button class="btn-view-all" onclick="switchView('projects')">Show More Projects</button>
+            <button class="btn-cta" style="margin-top: 40px; border-color: rgba(255,255,255,0.2); background:transparent;" onclick="switchView('projects')">View All Gallery</button>
         </section>
     </div>
 
-    <!-- --- ALL PROJECTS VIEW --- -->
     <div id="projects-view" class="view">
         <section style="padding-top: 120px;">
-            <h1 style="font-size: 3.5rem; margin-bottom: 20px;" class="name-highlight">Global Showcase</h1>
-            <p style="color: var(--text-dim); max-width: 600px; margin-bottom: 50px;">A collection of my work, from space exploration apps to sleek e-commerce solutions.</p>
+            <h1 style="font-size: 3rem; margin-bottom: 20px;" class="name-highlight">Gallery</h1>
             <div class="projects-grid" id="all-projects-list"></div>
-            <button class="btn-view-all" style="margin-top: 80px;" onclick="switchView('home')">Back to Home</button>
+            <button class="btn-cta" style="margin-top: 60px;" onclick="switchView('home')">Return Home</button>
         </section>
     </div>
 
-    <footer style="padding: 60px; text-align: center; border-top: 1px solid rgba(112,66,248,0.1)">
-        <p style="color: var(--text-dim)" id="site-footer">&copy; 2024 SAM Portfolio. One File. Total Control.</p>
+    <footer style="padding: 60px 10% 40px; text-align: center; border-top: 1px solid rgba(112,66,248,0.1)">
+        <div id="social-links" style="display:flex; justify-content:center; gap:25px; margin-bottom:25px;"></div>
+        <p style="color: var(--text-dim); font-size: 13px;" id="site-footer"></p>
     </footer>
 
-    <script>
-        /** --- CENTRALIZED DATA (CMS READY) --- **/
-        /* <WEBSITE_DATA> */
-        const WEBSITE_DATA = {
-    "logo": "SAM",
-    "heroTag": "I'm Sam - A Full Stuck Developar",
-    "heroTitle": "Making apps and websites with Modern Technologies",
-    "heroDesc": "Providing the best project experience with high-performance web applications and seamless digital solutions.",
-    "footer": "Copyright @Sam",
-    "projects": [
-        {
-            "title": "New",
-            "tag": "Web",
-            "img": "",
-            "url": "https://www.google.com/",
-            "desc": ""
-        },
-        {
-            "title": "",
-            "tag": "",
-            "img": "",
-            "url": "",
-            "desc": ""
-        },
-        {
-            "title": "",
-            "tag": "",
-            "img": "",
-            "url": "",
-            "desc": ""
-        },
-        {
-            "title": "",
-            "tag": "",
-            "img": "",
-            "url": "",
-            "desc": ""
-        },
-        {
-            "title": "",
-            "tag": "",
-            "img": "",
-            "url": "",
-            "desc": ""
-        },
-        {
-            "title": "",
-            "tag": "",
-            "img": "",
-            "url": "",
-            "desc": ""
-        }
-    ],
-    "skills": [
-        {
-            "name": "HTML",
-            "icon": "html5"
-        },
-        {
-            "name": "CSS",
-            "icon": "css3"
-        },
-        {
-            "name": "JS",
-            "icon": "javascript"
-        },
-        {
-            "name": "React",
-            "icon": "react"
-        },
-        {
-            "name": "NextJS",
-            "icon": "nextjs"
-        },
-        {
-            "name": "Node",
-            "icon": "nodejs"
-        },
-        {
-            "name": "TS",
-            "icon": "typescript"
-        },
-        {
-            "name": "Tailwind",
-            "icon": "tailwindcss"
-        },
-        {
-            "name": "Python",
-            "icon": "python"
-        },
-        {
-            "name": "Java",
-            "icon": "java"
-        },
-        {
-            "name": "C++",
-            "icon": "cplusplus"
-        },
-        {
-            "name": "Git",
-            "icon": "git"
-        },
-        {
-            "name": "Vue",
-            "icon": "vuejs"
-        },
-        {
-            "name": "Redux",
-            "icon": "redux"
-        },
-        {
-            "name": "MongoDB",
-            "icon": "mongodb"
-        },
-        {
-            "name": "Docker",
-            "icon": "docker"
-        },
-        {
-            "name": "MySQL",
-            "icon": "mysql"
-        },
-        {
-            "name": "Figma",
-            "icon": "figma"
-        }
-    ]
-};
-        /* </WEBSITE_DATA> */
+    <script type="module">
+        const SUPABASE_URL = 'https://svsusxfshnxjozbdtchz.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_3A7j6KHCcwOz-EG2Slm6QA_MPJBiHPv';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        /** --- STARFIELD --- **/
-        const canvas = document.getElementById('star-canvas');
-        const ctx = canvas.getContext('2d');
-        let stars = [];
-        function initStars() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            stars = [];
-            for (let i = 0; i < 400; i++) {
-                stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, z: Math.random() * canvas.width, size: Math.random() * 1.5 });
-            }
-        }
-        function drawStars() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
-            for (let s of stars) {
-                let x = (s.x - canvas.width / 2) * (canvas.width / s.z) + canvas.width / 2;
-                let y = (s.y - canvas.height / 2) * (canvas.width / s.z) + canvas.height / 2;
-                let radius = s.size * (canvas.width / s.z);
-                ctx.globalAlpha = 1 - (s.z / canvas.width);
-                ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
-                s.z -= 0.8; if (s.z <= 0) s.z = canvas.width;
-            }
-            requestAnimationFrame(drawStars);
-        }
-        initStars(); drawStars();
-
-        /** --- VIEW SWITCHING --- **/
-        function switchView(viewName) {
-            const home = document.getElementById('home-view');
-            const projects = document.getElementById('projects-view');
-            
-            if (viewName === 'projects') {
-                home.classList.remove('active');
-                setTimeout(() => { 
-                    projects.classList.add('active'); 
-                    window.scrollTo(0, 0);
-                    renderProjects('all-projects-list', WEBSITE_DATA.projects);
-                }, 300);
-            } else {
-                projects.classList.remove('active');
-                setTimeout(() => { 
-                    home.classList.add('active'); 
-                    window.scrollTo(0, 0);
-                    renderIdentity();
-                    renderSkills();
-                    renderProjects('home-projects-list', WEBSITE_DATA.projects.slice(0, 3));
-                }, 300);
-            }
-        }
-
-        function scrollSection(id) {
-            switchView('home');
-            setTimeout(() => {
-                document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
-            }, 400);
-        }
-
-        /** --- RENDERING --- **/
-        function renderIdentity() {
-            if (document.getElementById('site-logo')) document.getElementById('site-logo').innerText = WEBSITE_DATA.logo || "SAM";
-            if (document.getElementById('hero-tag')) document.getElementById('hero-tag').innerText = WEBSITE_DATA.heroTag || "";
-            if (document.getElementById('hero-title')) {
-                document.getElementById('hero-title').innerHTML = `<span class="name-highlight">${WEBSITE_DATA.heroTitle || ""}</span>`;
-            }
-            if (document.getElementById('hero-desc')) document.getElementById('hero-desc').innerText = WEBSITE_DATA.heroDesc || "";
-            if (document.getElementById('site-footer')) document.getElementById('site-footer').innerHTML = WEBSITE_DATA.footer || "";
-        }
-
-        function renderSkills() {
-            const container = document.getElementById('skills-pyramid');
-            container.innerHTML = '';
-            WEBSITE_DATA.skills.forEach((s, i) => {
-                const box = document.createElement('div');
-                box.className = 'skill-box reveal';
-                // Add staggered animation delay
-                box.style.animationDelay = `${i * 0.1}s`;
-                box.innerHTML = `
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${s.icon}/${s.icon}-original.svg" alt="${s.name}" onerror="this.src='https://via.placeholder.com/50?text=${s.name}'">
-                    <span>${s.name}</span>
-                `;
-                container.appendChild(box);
-            });
-            initReveal();
-        }
-
-        function renderProjects(containerId, list) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            list.forEach(p => {
-                container.innerHTML += `
-                    <a href="${p.url}" target="_blank" class="project-card reveal" onclick="trackEvent('click')">
-                        <img src="${p.img}" alt="${p.title}" class="project-thumb">
-                        <div class="project-info">
-                            <span class="project-tag">${p.tag}</span>
-                            <h3>${p.title}</h3>
-                            <p>${p.desc}</p>
-                            <span style="color:var(--purple-main); font-size:12px; font-weight:700;">Explore &rarr;</span>
-                        </div>
-                    </a>
-                `;
-            });
-            initReveal();
-        }
-
-        function initReveal() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
-            }, { threshold: 0.1 });
-            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-        }
-
-        /** --- TRACKING --- **/
-        let startTime = Date.now();
-
-        async function trackEvent(type, data = {}) {
-            try {
-                await fetch('/api/track', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, ...data })
-                });
-            } catch (e) {}
-        }
-
-        // Track session duration on leave
-        window.addEventListener('beforeunload', () => {
-            const duration = Math.floor((Date.now() - startTime) / 1000);
-            // Use sendBeacon for more reliable delivery on close
-            navigator.sendBeacon('/api/track', JSON.stringify({ type: 'session_end', duration }));
-        });
-
-        // Initial Render
-        window.onload = () => {
-            renderIdentity();
-            renderSkills();
-            renderProjects('home-projects-list', WEBSITE_DATA.projects.slice(0, 3));
-            trackEvent('view'); // Track page view
+        window.WEBSITE_DATA = {
+            "logo": "SAM", "heroTag": "PRO DEVELOPER", "heroTitle": "Crafting Modern Code", "heroDesc": "Designing fast and scalable web apps.", "heroImg": "./public/assets/3d character.webp", "footer": "© 2024", "socials": {}, "projects": [],
+            "skills": [{ "name": "HTML", "icon": "html5" }, { "name": "CSS", "icon": "css3" }, { "name": "JS", "icon": "javascript" }, { "name": "React", "icon": "react" }, { "name": "NextJS", "icon": "nextjs" }, { "name": "Node", "icon": "nodejs" }, { "name": "TS", "icon": "typescript" }, { "name": "Tailwind", "icon": "tailwindcss" }, { "name": "Python", "icon": "python" }, { "name": "Java", "icon": "java" }, { "name": "MongoDB", "icon": "mongodb" }, { "name": "Docker", "icon": "docker" }, { "name": "C++", "icon": "cplusplus" }, { "name": "Git", "icon": "git" }, { "name": "Redux", "icon": "redux" }, { "name": "Vue", "icon": "vuejs" }, { "name": "MySQL", "icon": "mysql" }, { "name": "Figma", "icon": "figma" }]
         };
+
+        async function syncData() {
+            try {
+                const { data } = await _supabase.from('portfolio').select('content').eq('id', 1).single();
+                if (data) window.WEBSITE_DATA = data.content;
+                renderAll();
+            } catch (e) { renderAll(); }
+        }
+
+        function renderAll() {
+            const data = window.WEBSITE_DATA;
+            document.getElementById('site-logo').innerText = data.logo || "SAM";
+            document.getElementById('hero-tag').innerText = data.heroTag || "";
+            document.getElementById('hero-title').innerHTML = `<span class="name-highlight">${data.heroTitle || ""}</span>`;
+            document.getElementById('hero-desc').innerText = data.heroDesc || "";
+            document.getElementById('hero-img').src = data.heroImg || "";
+            document.getElementById('site-footer').innerText = data.footer || "";
+            const sl = document.getElementById('social-links');
+            sl.innerHTML = Object.entries(data.socials || {}).map(([k, v]) => v ? `<a href="${v}" target="_blank" style="transition:0.3s; opacity:0.7;"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${k}/${k}-original.svg" width="22" onerror="this.style.display='none'"></a>` : '').join('');
+            document.getElementById('skills-list').innerHTML = (data.skills || []).map(s => `<div class="skill-box"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${s.icon}/${s.icon}-original.svg" loading="lazy"><span>${s.name}</span></div>`).join('');
+            renderProjects('home-projects-list', (data.projects || []).slice(0, 4)); // Show 4 on mobile home for better grid
+            const loader = document.getElementById('loader'); if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 500); }
+        }
+
+        window.renderProjects = function(id, list) {
+            const el = document.getElementById(id); if(!el) return;
+            el.innerHTML = list.map(p => `<a href="${p.url}" target="_blank" class="project-card"><img src="${p.img}" class="project-thumb" loading="lazy"><div class="project-info"><span class="project-tag">${p.tag}</span><h3>${p.title}</h3><p style="font-size:0.85rem; color:var(--text-dim);">${p.desc}</p></div></a>`).join('');
+        };
+
+        window.switchView = function(n) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(n + '-view').classList.add('active'); window.scrollTo(0,0); if(n==='projects') renderProjects('all-projects-list', window.WEBSITE_DATA.projects); };
+        window.scrollSection = function(id) { switchView('home'); setTimeout(() => document.getElementById(id).scrollIntoView({behavior:'smooth'}), 100); };
+
+        const canvas = document.getElementById('star-canvas'); const ctx = canvas.getContext('2d'); let stars = [];
+        function initStars() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; stars = Array.from({length: 150}, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, z: Math.random() * canvas.width, size: Math.random() * 1.2 })); }
+        function drawStars() { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "white"; stars.forEach(s => { let x = (s.x - canvas.width / 2) * (canvas.width / s.z) + canvas.width / 2; let y = (s.y - canvas.height / 2) * (canvas.width / s.z) + canvas.height / 2; let radius = s.size * (canvas.width / s.z); ctx.globalAlpha = 1 - (s.z / canvas.width); ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); s.z -= 1.5; if (s.z <= 0) s.z = canvas.width; }); requestAnimationFrame(drawStars); }
+
+        document.addEventListener('DOMContentLoaded', () => { syncData(); initStars(); drawStars(); });
+        window.addEventListener('resize', initStars);
     </script>
 </body>
 </html>
