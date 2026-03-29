@@ -4,11 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAM | Pro Portfolio</title>
+    
+    <!-- Performance: Preconnect to external assets -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="preconnect" href="https://svsusxfshnxjozbdtchz.supabase.co">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg-dark: #030014; --purple-main: #7042f8; --purple-glow: rgba(112, 66, 248, 0.4); --text-dim: #94a3b8; --nav-bg: rgba(3, 0, 20, 0.8); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
+        body { background-color: var(--bg-dark); color: white; overflow-x: hidden; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 
         /* Loader */
         #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #030014; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
@@ -18,7 +24,7 @@
         /* Background */
         .bg-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: #030014; }
         .nebula { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 30%, rgba(112, 66, 248, 0.15) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(112, 66, 248, 0.1) 0%, transparent 50%); filter: blur(60px); opacity: 0.6; }
-        #star-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #star-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; will-change: transform; }
 
         /* Navigation */
         nav { position: fixed; top: 0; width: 100%; height: 65px; display: flex; justify-content: space-between; align-items: center; padding: 0 10%; background: var(--nav-bg); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(112, 66, 248, 0.1); z-index: 1000; }
@@ -31,29 +37,31 @@
 
         section { padding: 100px 10% 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
 
-        /* --- DESKTOP HERO --- */
+        /* Hero */
         .hero { flex-direction: row; justify-content: space-between; text-align: left; gap: 50px; padding-top: 120px; align-items: center; }
         .hero-content { flex: 1.2; }
         .hero-name { font-size: 14px; font-weight: 700; color: var(--purple-main); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 15px; display: block; }
         .hero h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
         .name-highlight { background: linear-gradient(to right, #fff, var(--purple-main)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .hero p { color: var(--text-dim); font-size: 1.1rem; line-height: 1.6; margin-bottom: 35px; max-width: 550px; }
-        .hero-image { flex: 1; display: flex; justify-content: center; position: relative; }
-        .hero-image img { max-width: 110%; height: auto; filter: drop-shadow(0 0 30px var(--purple-glow)); animation: float 5s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .hero-image { flex: 1; display: flex; justify-content: center; position: relative; will-change: transform; }
+        .hero-image img { max-width: 110%; height: auto; filter: drop-shadow(0 0 30px var(--purple-glow)); animation: float 5s ease-in-out infinite; transform: translateZ(0); }
+        @keyframes float { 0%, 100% { transform: translateY(0) translateZ(0); } 50% { transform: translateY(-20px) translateZ(0); } }
 
         .btn-cta { display: inline-block; padding: 14px 35px; border: 1px solid var(--purple-main); border-radius: 35px; color: white; text-decoration: none; font-weight: 700; background: rgba(112, 66, 248, 0.1); transition: 0.4s; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
         .btn-cta:hover { background: var(--purple-main); box-shadow: 0 0 30px var(--purple-main); transform: translateY(-3px); }
 
-        /* Skills */
+        /* Skills (Optimized for scrolling - removed blur) */
         .skills-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1000px; margin-top: 40px; }
-        .skill-box { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(112, 66, 248, 0.1); padding: 18px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 110px; backdrop-filter: blur(8px); transition: 0.3s; }
+        .skill-box { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(112, 66, 248, 0.1); padding: 18px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 110px; transition: 0.3s; }
+        .skill-box:hover { border-color: var(--purple-main); transform: scale(1.1); background: rgba(112, 66, 248, 0.08); }
         .skill-box img { width: 40px; height: 40px; }
         .skill-box span { font-size: 11px; font-weight: 600; color: #fff; }
 
         /* Projects */
         .projects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; width: 100%; max-width: 1200px; margin-top: 40px; }
         .project-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(112, 66, 248, 0.1); border-radius: 24px; overflow: hidden; text-align: left; transition: 0.4s; text-decoration: none; color: white; display: flex; flex-direction: column; }
+        .project-card:hover { transform: translateY(-10px); border-color: var(--purple-main); box-shadow: 0 15px 40px rgba(112, 66, 248, 0.15); }
         .project-thumb { width: 100%; height: 200px; background: #111; object-fit: cover; }
         .project-info { padding: 25px; background: rgba(3, 0, 20, 0.4); flex-grow: 1; }
         .project-info h3 { font-size: 1.3rem; margin-bottom: 10px; }
@@ -61,68 +69,22 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- SCRATCH REDESIGN FOR MOBILE --- */
+        /* --- MOBILE --- */
         @media (max-width: 768px) {
             nav { padding: 0 5%; height: 60px; }
-            .logo { font-size: 18px; }
-            .nav-links { gap: 15px; }
-            .nav-links a { font-size: 12px; }
-            
             section { padding: 40px 5% 20px; }
-
-            /* New Dedicated Mobile Hero Grid */
-            .hero { 
-                display: grid;
-                grid-template-columns: 1fr 1fr; /* Two columns for middle row */
-                grid-template-rows: auto auto auto auto; /* 4 distinct areas */
-                gap: 15px;
-                text-align: center;
-                padding-top: 90px;
-            }
-
-            .hero-content { display: contents; } /* Unwraps children for grid control */
-
-            .hero-name { 
-                grid-row: 1; grid-column: 1 / span 2; 
-                font-size: 12px; letter-spacing: 3px; margin: 0;
-            }
-            
-            .hero h1 { 
-                grid-row: 2; grid-column: 1 / span 2; 
-                font-size: 1.8rem; margin: 0 0 10px 0;
-            }
-
-            .hero p { 
-                grid-row: 3; grid-column: 1; 
-                text-align: left; font-size: 0.8rem; line-height: 1.4; margin: 0;
-                padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px;
-                border: 1px solid rgba(112,66,248,0.1); display: flex; align-items: center;
-            }
-
-            .hero-image { 
-                grid-row: 3; grid-column: 2; 
-                display: flex; justify-content: center; align-items: center; margin: 0;
-            }
-            
-            .hero-image img { 
-                max-width: 130%; transform: scale(1.3) translateX(5px);
-                filter: drop-shadow(0 0 15px var(--purple-glow));
-            }
-
-            .btn-cta { 
-                grid-row: 4; grid-column: 1 / span 2; 
-                width: 100%; margin-top: 15px; padding: 12px; font-size: 12px;
-            }
-            
-            /* Projects Redesign: Clean 2-Column */
-            .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 25px; }
+            .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: center; padding-top: 90px; }
+            .hero-content { display: contents; } 
+            .hero-name { grid-row: 1; grid-column: 1 / span 2; font-size: 12px; letter-spacing: 3px; }
+            .hero h1 { grid-row: 2; grid-column: 1 / span 2; font-size: 1.8rem; margin-bottom: 10px; }
+            .hero p { grid-row: 3; grid-column: 1; text-align: left; font-size: 0.8rem; line-height: 1.4; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(112,66,248,0.1); display: flex; align-items: center; }
+            .hero-image { grid-row: 3; grid-column: 2; display: flex; justify-content: center; align-items: center; }
+            .hero-image img { max-width: 130%; transform: scale(1.3) translateX(5px); }
+            .btn-cta { grid-row: 4; grid-column: 1 / span 2; width: 100%; margin-top: 15px; padding: 12px; font-size: 12px; }
+            .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .project-thumb { height: 100px; }
-            .project-info { padding: 12px; }
-            .project-info h3 { font-size: 0.9rem; margin: 0; }
-            .project-info p { display: none; } /* Max space for title */
-            .project-tag { font-size: 8px; padding: 2px 6px; margin-bottom: 5px; }
-            
-            /* Skills Redesign: Compact */
+            .project-info h3 { font-size: 0.9rem; }
+            .project-info p { display: none; }
             .skill-box { width: 75px; padding: 10px; gap: 5px; }
             .skill-box img { width: 25px; height: 25px; }
             .skill-box span { font-size: 8px; }
@@ -150,27 +112,14 @@
                 <p id="hero-desc">Loading...</p>
                 <button class="btn-cta" onclick="switchView('projects')">Explore Projects</button>
             </div>
-            <div class="hero-image"><img id="hero-img" src="" alt="SAM"></div>
+            <div class="hero-image"><img id="hero-img" src="" alt="SAM" loading="eager" fetchpriority="high"></div>
         </section>
-
-        <section id="skills">
-            <h2 style="font-size: 1.8rem; margin-bottom: 20px;">Technical Stack</h2>
-            <div class="skills-container" id="skills-list"></div>
-        </section>
-
-        <section id="projects-preview">
-            <h2 style="font-size: 1.8rem; margin-bottom: 20px;">Spotlight</h2>
-            <div class="projects-grid" id="home-projects-list"></div>
-            <button class="btn-cta" style="margin-top: 30px; background:transparent;" onclick="switchView('projects')">View Full Gallery</button>
-        </section>
+        <section id="skills"><h2 style="font-size: 1.8rem; margin-bottom: 20px;">Technical Stack</h2><div class="skills-container" id="skills-list"></div></section>
+        <section id="projects-preview"><h2 style="font-size: 1.8rem; margin-bottom: 20px;">Spotlight</h2><div class="projects-grid" id="home-projects-list"></div><button class="btn-cta" style="margin-top: 30px; background:transparent;" onclick="switchView('projects')">View Full Gallery</button></section>
     </div>
 
     <div id="projects-view" class="view">
-        <section style="padding-top: 100px;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 20px;" class="name-highlight">Projects</h1>
-            <div class="projects-grid" id="all-projects-list"></div>
-            <button class="btn-cta" style="margin-top: 40px;" onclick="switchView('home')">Back to Home</button>
-        </section>
+        <section style="padding-top: 100px;"><h1 style="font-size: 2.5rem; margin-bottom: 20px;" class="name-highlight">Projects</h1><div class="projects-grid" id="all-projects-list"></div><button class="btn-cta" style="margin-top: 40px;" onclick="switchView('home')">Back to Home</button></section>
     </div>
 
     <footer style="padding: 40px 10% 30px; text-align: center; border-top: 1px solid rgba(112,66,248,0.1)">
@@ -209,7 +158,7 @@
             document.getElementById('hero-img').src = data.heroImg || "";
             document.getElementById('site-footer').innerText = data.footer || "";
             const sl = document.getElementById('social-links');
-            sl.innerHTML = Object.entries(data.socials || {}).map(([k, v]) => v ? `<a href="${v}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${k}/${k}-original.svg" width="20" onerror="this.style.display='none'"></a>` : '').join('');
+            sl.innerHTML = Object.entries(data.socials || {}).map(([k, v]) => v ? `<a href="${v}" target="_blank" style="transition:0.3s; opacity:0.7;"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${k}/${k}-original.svg" width="22" onerror="this.style.display='none'"></a>` : '').join('');
             document.getElementById('skills-list').innerHTML = (data.skills || []).map(s => `<div class="skill-box"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${s.icon}/${s.icon}-original.svg" loading="lazy"><span>${s.name}</span></div>`).join('');
             renderProjects('home-projects-list', (data.projects || []).slice(0, 4));
             const loader = document.getElementById('loader'); if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 500); }
@@ -224,8 +173,8 @@
         window.scrollSection = function(id) { switchView('home'); setTimeout(() => document.getElementById(id).scrollIntoView({behavior:'smooth'}), 100); };
 
         const canvas = document.getElementById('star-canvas'); const ctx = canvas.getContext('2d'); let stars = [];
-        function initStars() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; stars = Array.from({length: 150}, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, z: Math.random() * canvas.width, size: Math.random() * 1.2 })); }
-        function drawStars() { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "white"; stars.forEach(s => { let x = (s.x - canvas.width / 2) * (canvas.width / s.z) + canvas.width / 2; let y = (s.y - canvas.height / 2) * (canvas.width / s.z) + canvas.height / 2; let radius = s.size * (canvas.width / s.z); ctx.globalAlpha = 1 - (s.z / canvas.width); ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); s.z -= 1.5; if (s.z <= 0) s.z = canvas.width; }); requestAnimationFrame(drawStars); }
+        function initStars() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; stars = Array.from({length: 100}, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, z: Math.random() * canvas.width, size: Math.random() * 1.2 })); }
+        function drawStars() { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "white"; stars.forEach(s => { let x = (s.x - canvas.width / 2) * (canvas.width / s.z) + canvas.width / 2; let y = (s.y - canvas.height / 2) * (canvas.width / s.z) + canvas.height / 2; let radius = s.size * (canvas.width / s.z); ctx.globalAlpha = 1 - (s.z / canvas.width); ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); s.z -= 1.2; if (s.z <= 0) s.z = canvas.width; }); requestAnimationFrame(drawStars); }
 
         document.addEventListener('DOMContentLoaded', () => { syncData(); initStars(); drawStars(); });
         window.addEventListener('resize', initStars);
